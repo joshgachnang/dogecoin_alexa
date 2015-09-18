@@ -3,6 +3,11 @@ DogeCoin what is the price
 DogeCoin how many dollars is dogecoin
 DogeCoin how many dollars is a million dogecoins
 
+DOGEtoUSD how much is {one thousand|coins} dogecoin in dollars
+DOGEtoUSD how much is {one thousand|coins} dogecoin worth
+
+USDtoDOGE how many dogecoins is {ten|dollars} dollars
+
 HelpIntent help
 HelpIntent help me
 HelpIntent what can I ask you
