@@ -9,7 +9,6 @@ app = Flask(__name__)
 DOGE_API = ('http://pubapi.cryptsy.com/api.php?method=singlemarketdata'
             '&marketid=182')
 API_VERSION = '1.0'
-ssl_enable = False
 
 
 @app.route("/")
@@ -21,15 +20,13 @@ def main():
 def apicalls():
     if request.method == 'POST':
         data = request.get_json()
-        if data.get('type') == 'IntentRequest':
+        print data
+        if data['request'].get('type') == 'IntentRequest':
             return _intent(data)
-        elif data.get('type') == 'LaunchRequest':
+        elif data['request'].get('type') == 'LaunchRequest':
             return _launch(data)
-        elif data.get('type') == 'SessionEndedRequest':
+        elif data['request'].get('type') == 'SessionEndedRequest':
             return _end(data)
-
-            # sessionId = myApp.data_handler(data)
-            # return sessionId + "\n"
 
 
 @app.route("/doge/price")
@@ -39,11 +36,24 @@ def doge_price():
 
 def _intent(data):
     print "Intent", data
-    price = _get_current_doge_price() * 1000000
+    if data['request'].get('intent', {}).get('name') == 'HelpIntent':
+        return _help(data)
+    elif data['request'].get('intent', {}).get('name') == 'DogeCoin':
+        return _dogecoin(data)
+
+
+def _dogecoin(data):
+    price = float(_get_current_doge_price()) * 1000000
 
     response = AlexaResponse(
-        'One million Doge coins are worth {.2f} dollars.'.format(price))
+        'One million Doge coins are worth {0:.2f} dollars. Wow!'.format(price))
     return response.to_json()
+
+
+def _help(data):
+    return AlexaResponse(
+        'Just ask what the current price is. Much easy. Wow.').to_json()
+
 
 def _launch(data):
     print "Launch", data
@@ -51,6 +61,7 @@ def _launch(data):
 
 def _end(data):
     print "End", data
+    return json.dumps({'response': 'ok'})
 
 
 def _get_current_doge_price():
@@ -61,51 +72,12 @@ def _get_current_doge_price():
 def run_app():
     # SocketServer.BaseServer.handle_error = close_stream
     SocketServer.ThreadingTCPServer.allow_reuse_address = True
-    _run(app)
-
-
-def _run(app):
-    try:
-        if ssl_enable:
-            # context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
-            # context.load_cert_chain('yourserver.crt', 'yourserver.key')
-            '''
-            Generate a private key:
-                openssl genrsa -des3 -out server.key 1024
-
-                Generate a CSR
-                openssl req -new -key server.key -out server.csr
-
-                Remove Passphrase from key
-                cp server.key server.key.org openssl rsa -in server.key.org
-                -out server.key
-
-                Generate self signed certificate
-                openssl x509 -req -days 365 -in server.csr -signkey
-                server.key -out server.crt
-            '''
-
-            app.run(debug=True,
-                    port=5000,
-                    threaded=True,
-                    use_reloader=False,
-                    use_debugger=True,
-                    ssl_context='adhoc',
-                    # ssl_context=('yourserver.crt', 'yourserver.key')
-                    host='0.0.0.0'
-                    )
-        else:
-            app.run(debug=True,
-                    port=5000,
-                    threaded=True,
-                    use_reloader=True,
-                    use_debugger=True,
-                    host='0.0.0.0'
-                    )
-    finally:
-        print "Disconnecting clients"
-
-    print "Done"
+    app.run(debug=True,
+            port=5000,
+            threaded=True,
+            use_reloader=True,
+            use_debugger=True,
+            host='0.0.0.0')
 
 
 class AlexaResponse(object):
