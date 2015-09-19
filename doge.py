@@ -11,10 +11,6 @@ DOGE_API = ('http://pubapi.cryptsy.com/api.php?method=singlemarketdata'
 
 ALEXA_API_VERSION = '1.0'
 
-intents = []
-launch_intent = None
-end_intent = None
-
 
 @app.route("/")
 def main():
@@ -23,9 +19,7 @@ def main():
 
 @app.route("/alexa/api", methods=['POST'])
 def apicalls():
-    # global intents
-    # global launch_intent
-
+    """The route all Alexa communication happens though."""
     if request.method == 'POST':
         data = request.get_json()
         print "Received POST: {}".format(data)
@@ -38,17 +32,6 @@ def apicalls():
             return launch_intent.handle(data)
         elif data['request'].get('type') == 'SessionEndedRequest':
             return end_intent.handle(data)
-
-
-def run_app():
-    # SocketServer.BaseServer.handle_error = close_stream
-    SocketServer.ThreadingTCPServer.allow_reuse_address = True
-    app.run(debug=True,
-            port=5000,
-            threaded=True,
-            use_reloader=True,
-            use_debugger=True,
-            host='0.0.0.0')
 
 
 def _get_current_doge_price():
@@ -70,7 +53,7 @@ class Intent(object):
 
 class NoopIntent(object):
     def handle(self, data):
-        print 'Noop'
+        print 'Noop', data
         return json.dumps({})
 
 
@@ -117,6 +100,8 @@ class HelpIntent(Intent):
 
 
 class AlexaResponse(object):
+    """A response to request from Alexa."""
+    # TODO(pcsforeducation) lots more to support here
     def __init__(self, speech):
         self.speech = speech
 
@@ -134,24 +119,33 @@ class AlexaResponse(object):
 
         return json.dumps(response)
 
+# Each of these intent classes name attrs will be matched against intent
+# name sent by Amazon
+ENABLED_INTENTS = [
+    DogeCoinIntent,
+    DogeToUSD,
+    USDtoDoge,
+    HelpIntent,
+]
+intents = [intent() for intent in ENABLED_INTENTS]
+
+# The intent to handle launch events like 'Open Dogecoin'
+launch_intent = DogeCoinIntent()
+
+# The intent to handle event at the end of a session
+end_intent = NoopIntent()
+
+
+def run_app():
+    """Run the app in dev mode, with auto restarting"""
+    SocketServer.ThreadingTCPServer.allow_reuse_address = True
+    app.run(debug=True,
+            port=5000,
+            threaded=True,
+            use_reloader=True,
+            use_debugger=True,
+            host='0.0.0.0')
+
 
 if __name__ == "__main__":
-    # Each of these intent classes name attrs will be matched against intent
-    # name sent by Amazon
-    ENABLED_INTENTS = [
-        DogeCoinIntent,
-        DogeToUSD,
-        USDtoDoge,
-        HelpIntent,
-    ]
-
-    # The intent to handle launch events like 'Open Dogecoin'
-    launch_intent = DogeCoinIntent()
-
-    # The intent to handle event at the end of a session
-    end_intent = NoopIntent
-
-    for intent in ENABLED_INTENTS:
-        intents.append(intent())
-
     run_app()
